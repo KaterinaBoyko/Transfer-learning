@@ -1,0 +1,69 @@
+pip install torch torchvision
+import torch
+from torchvision import models, transforms
+from PIL import Image
+
+# Загрузка предобученной модели ResNet50
+model = models.resnet50(pretrained=True)
+model.eval()  # Переводим модель в режим оценки
+
+# Определяем преобразования для изображения
+preprocess = transforms.Compose([
+    transforms.Resize(256),
+    transforms.CenterCrop(224),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+])
+
+# Функция для предсказания класса
+def predict_image_class(image_path):
+    # Открываем изображение
+    img = Image.open(image_path)
+    
+    # Преобразуем изображение
+    img_tensor = preprocess(img)
+    img_tensor = img_tensor.unsqueeze(0)  # Добавляем batch размерности
+
+    # Предсказание
+    with torch.no_grad():
+        outputs = model(img_tensor)
+    
+    # Определяем предсказанный класс
+    _, predicted_class = outputs.max(1)
+    
+    return predicted_class.item()
+
+
+image_path = '/mnt/data/image.png'  
+predicted_class = predict_image_class(image_path)
+print(f'Предсказанный класс: {predicted_class}')
+
+
+
+
+
+pip install transformers torch
+import torch
+from transformers import BertTokenizer, BertForSequenceClassification
+
+# Загрузка токенизатора и предобученной модели BERT
+tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+model = BertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels=2)  # Задаем 2 класса (например, для бинарной классификации)
+model.eval()  # Переводим модель в режим оценки
+
+# Функция для предсказания класса текста
+def predict_text_class(text):
+    # Токенизация и преобразование текста в тензоры
+    inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True, max_length=512)
+    
+    # Предсказание класса
+    with torch.no_grad():
+        outputs = model(**inputs)
+    
+    logits = outputs.logits
+    predicted_class = torch.argmax(logits, dim=1).item()
+    
+    return predicted_class
+text = "This is a great movie!"  # Замените на свой текст
+predicted_class = predict_text_class(text)
+print(f'Предсказанный класс: {predicted_class}')
